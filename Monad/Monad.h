@@ -3,7 +3,7 @@
 
 //Our inculdes
 #include "Result.h"
-#include "PFuture.h"
+// #include "PFuture.h"
 
 //Qt includes
 #include <QFuture>
@@ -11,13 +11,15 @@
 //Std includes
 #include <type_traits>
 
+namespace Monad {
+
 /**
  * Tests if T is a QFuture<T>, for all other types it's std::false_type
  */
 template <typename Future> struct is_qfuture : std::false_type {};
 template <typename T> struct is_qfuture<QFuture<T>> : std::true_type { };
 template <typename Future> struct is_pfuture : std::false_type {};
-template <typename T> struct is_pfuture<PFuture<T>> : std::true_type { };
+// template <typename T> struct is_pfuture<PFuture<T>> : std::true_type { };
 
 /**
   Creates a contained_type_t that the T in QFuture<T>
@@ -45,9 +47,10 @@ auto mbind(T value, Func f) {
     using R = typename std::invoke_result<Func, T>::type;
 
     auto result = [value]() {
-        if constexpr(is_pfuture<T>()) {
-            return value.result();
-        } else if constexpr(is_qfuture<T>()) {
+        // if constexpr(is_pfuture<T>()) {
+        //     return value.result();
+        // } else
+        if constexpr(is_qfuture<T>()) {
             return value.result();
         } else {
             return value;
@@ -56,14 +59,15 @@ auto mbind(T value, Func f) {
     using ResultType = decltype(result);
 
     if(result.hasError()) {
-        if constexpr(is_pfuture<R>()) {
-            using FutureT = typename pfuture<R>::contained_type_t;
-            if constexpr(is_pfuture<T>()) {
-                return value.ready(FutureT(result.errorMessage(), result.errorCode()));
-            } else {
-                return PFuture(QtFuture::makeReadyFuture<FutureT>(FutureT(result.errorMessage(), result.errorCode())));
-            }
-        } else if constexpr(is_qfuture<R>()) {
+        // if constexpr(is_pfuture<R>()) {
+        //     using FutureT = typename pfuture<R>::contained_type_t;
+        //     if constexpr(is_pfuture<T>()) {
+        //         return value.ready(FutureT(result.errorMessage(), result.errorCode()));
+        //     } else {
+        //         return PFuture(QtFuture::makeReadyFuture<FutureT>(FutureT(result.errorMessage(), result.errorCode())));
+        //     }
+        // } else
+        if constexpr(is_qfuture<R>()) {
             using FutureT = typename qfuture<R>::contained_type_t;
             return QtFuture::makeReadyFuture<FutureT>(FutureT(result.errorMessage(), result.errorCode()));
         } else {
@@ -151,5 +155,6 @@ template<typename T>
 auto makeSuccessFrom(T) {
     return ResultBase();
 }
+};
 
 #endif // MONAD_H

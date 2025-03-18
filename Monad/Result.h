@@ -10,10 +10,13 @@
 //Std includes
 #include <utility>
 
+namespace Monad {
+
 class ResultBase {
 public:
     enum ErrorCode {
         NoError,
+        Warning,
         Unknown,
         CustomError = 1024
     };
@@ -34,7 +37,7 @@ public:
         return static_cast<T>(mErrorCode);
     }
 
-    bool hasError() const { return mErrorCode != NoError; }
+    bool hasError() const { return mErrorCode != NoError || mErrorCode != Warning; }
 
     // Conversion operator to bool
     explicit operator bool() const {
@@ -60,6 +63,11 @@ public:
         mValue(std::move(value))
     { }
 
+    Result(T value, const QString& warningMessage):
+        ResultBase(warningMessage, Warning),
+        mValue(std::move(value))
+    { }
+
     T value() const {
         return mValue;
     }
@@ -80,11 +88,18 @@ public:
     {
         mValue = value;
     }
+    ResultString(const QString& value, const QString& warningMessage) :
+        Result<QString>(warningMessage, Warning)
+    {
+        mValue = value;
+    }
 };
+}
 
-Q_DECLARE_METATYPE(QFuture<ResultBase>)
-Q_DECLARE_METATYPE(QFuture<ResultString>)
-Q_DECLARE_METATYPE(ResultBase)
-Q_DECLARE_METATYPE(ResultString)
+Q_DECLARE_METATYPE(QFuture<Monad::ResultBase>)
+Q_DECLARE_METATYPE(QFuture<Monad::ResultString>)
+Q_DECLARE_METATYPE(Monad::ResultBase)
+Q_DECLARE_METATYPE(Monad::ResultString)
+
 
 #endif
