@@ -37,7 +37,7 @@ public:
         return static_cast<T>(mErrorCode);
     }
 
-    bool hasError() const { return mErrorCode != NoError || mErrorCode != Warning; }
+    bool hasError() const { return mErrorCode != NoError && mErrorCode != Warning; }
 
     // Conversion operator to bool
     explicit operator bool() const {
