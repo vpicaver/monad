@@ -69,7 +69,7 @@ auto mbind(T value, Func f) {
         // } else
         if constexpr(is_qfuture<R>()) {
             using FutureT = typename qfuture<R>::contained_type_t;
-            return QtFuture::makeReadyFuture<FutureT>(FutureT(result.errorMessage(), result.errorCode()));
+            return QtFuture::makeReadyValueFuture(FutureT(result.errorMessage(), result.errorCode()));
         } else {
             return R(result.errorMessage(), result.errorCode());
         }
