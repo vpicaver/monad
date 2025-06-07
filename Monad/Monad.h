@@ -3,7 +3,6 @@
 
 //Our inculdes
 #include "Result.h"
-// #include "PFuture.h"
 
 //Qt includes
 #include <QFuture>
@@ -18,8 +17,6 @@ namespace Monad {
  */
 template <typename Future> struct is_qfuture : std::false_type {};
 template <typename T> struct is_qfuture<QFuture<T>> : std::true_type { };
-template <typename Future> struct is_pfuture : std::false_type {};
-// template <typename T> struct is_pfuture<PFuture<T>> : std::true_type { };
 
 /**
   Creates a contained_type_t that the T in QFuture<T>
@@ -31,58 +28,78 @@ struct qfuture {
 };
 
 /**
-  Creates a contained_type_t that the T in PFuture<T>
- */
-template <typename T>
-struct pfuture {
-    static_assert(is_pfuture<T>(), "T must be a PFuture<>");
-    using contained_type_t = decltype(T().result());
-};
-
-/**
   Monad for ResultBase handling
  */
 template<typename T, typename Func>
 auto mbind(T value, Func f) {
-    using R = typename std::invoke_result<Func, T>::type;
 
     auto result = [value]() {
-        // if constexpr(is_pfuture<T>()) {
-        //     return value.result();
-        // } else
         if constexpr(is_qfuture<T>()) {
             return value.result();
         } else {
             return value;
         }
     }();
-    using ResultType = decltype(result);
 
-    if(result.hasError()) {
-        // if constexpr(is_pfuture<R>()) {
-        //     using FutureT = typename pfuture<R>::contained_type_t;
-        //     if constexpr(is_pfuture<T>()) {
-        //         return value.ready(FutureT(result.errorMessage(), result.errorCode()));
-        //     } else {
-        //         return PFuture(QtFuture::makeReadyFuture<FutureT>(FutureT(result.errorMessage(), result.errorCode())));
-        //     }
-        // } else
-        if constexpr(is_qfuture<R>()) {
-            using FutureT = typename qfuture<R>::contained_type_t;
-            return QtFuture::makeReadyValueFuture(FutureT(result.errorMessage(), result.errorCode()));
+    if constexpr(is_qfuture<T>()) {
+        using FutureT = typename qfuture<T>::contained_type_t;
+        using R = typename std::invoke_result<Func, FutureT>::type;
+
+        //This is copy pasta from above
+        if(result.hasError()) {
+            if constexpr(is_qfuture<R>()) {
+                using FutureR = typename qfuture<R>::contained_type_t;
+                return QtFuture::makeReadyValueFuture(FutureR(result.errorMessage(), result.errorCode()));
+            } else {
+                return R(result.errorMessage(), result.errorCode());
+            }
         } else {
-            return R(result.errorMessage(), result.errorCode());
+            return f(result);
         }
     } else {
-        if constexpr (std::is_invocable_v<Func, T>) {
-            return f(value);
-        } else if constexpr (std::is_invocable_v<Func, ResultType>) {
-            return f(result);
+        using R = typename std::invoke_result<Func, T>::type;
+
+        //This is copy pasta from above
+        if(result.hasError()) {
+            if constexpr(is_qfuture<R>()) {
+                using FutureR = typename qfuture<R>::contained_type_t;
+                return QtFuture::makeReadyValueFuture(FutureR(result.errorMessage(), result.errorCode()));
+            } else {
+                return R(result.errorMessage(), result.errorCode());
+            }
         } else {
-            Q_ASSERT(false);
-            //static_assert(false, "f must accept either T or the result type of T as its argument");
+            return f(result);
         }
     }
+
+    // using ResultType = decltype(result);
+
+    // if(result.hasError()) {
+    //     // if constexpr(is_pfuture<R>()) {
+    //     //     using FutureT = typename pfuture<R>::contained_type_t;
+    //     //     if constexpr(is_pfuture<T>()) {
+    //     //         return value.ready(FutureT(result.errorMessage(), result.errorCode()));
+    //     //     } else {
+    //     //         return PFuture(QtFuture::makeReadyFuture<FutureT>(FutureT(result.errorMessage(), result.errorCode())));
+    //     //     }
+    //     // } else
+    //     using R = typename std::invoke_result<Func, T>::type;
+    //     if constexpr(is_qfuture<R>()) {
+    //         using FutureT = typename qfuture<R>::contained_type_t;
+    //         return QtFuture::makeReadyValueFuture(FutureT(result.errorMessage(), result.errorCode()));
+    //     } else {
+    //         return ResultType(result.errorMessage(), result.errorCode());
+    //     }
+    // } else {
+    //     if constexpr (std::is_invocable_v<Func, T>) {
+    //         return f(value);
+    //     } else if constexpr (std::is_invocable_v<Func, ResultType>) {
+    //         return f(result);
+    //     } else {
+    //         Q_ASSERT(false);
+    //         //static_assert(false, "f must accept either T or the result type of T as its argument");
+    //     }
+    // }
 }
 
 ///**
