@@ -35,6 +35,7 @@ auto mbind(T value, Func f) {
 
     auto result = [value]() {
         if constexpr(is_qfuture<T>()) {
+            //Will strip the QFuture from value
             return value.result();
         } else {
             return value;
