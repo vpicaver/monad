@@ -132,7 +132,7 @@ auto mtry(F f) {
     using R = typename std::invoke_result<F>::type;
     try {
         return f();
-    } catch( std::runtime_error error) {
+    } catch(const std::runtime_error& error) {
         return R(QString::fromLocal8Bit(error.what()).trimmed());
     }
 }
