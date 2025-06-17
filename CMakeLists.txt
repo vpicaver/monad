@@ -1,23 +1,37 @@
 cmake_minimum_required(VERSION 3.10)
 project(monad VERSION 1.0.0 LANGUAGES CXX)
 
-# option(ENABLE_TESTING "Enable testing for the project" OFF)
+option(MONAD_TESTING "Enable testing for the project" OFF)
 
-add_library(monad INTERFACE)
-target_include_directories(monad INTERFACE
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include>)
+find_package(Qt6 REQUIRED COMPONENTS Core)
+qt_standard_project_setup()
 
-target_sources(monad INTERFACE
-    ${PROJECT_SOURCE_DIR}/Monad/Monad.h
-    ${PROJECT_SOURCE_DIR}/Monad/Result.h
+#Add address sanitizer for clang build only
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    add_compile_options($<$<CONFIG:Debug>:-fsanitize=address>)
+    add_link_options($<$<CONFIG:Debug>:-fsanitize=address>)
+endif()
+
+add_library(monad STATIC)
+target_include_directories(monad PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# if(ENABLE_TESTING)
-#     add_subdirectory(tests)
-# endif()
+target_link_libraries(monad
+    PUBLIC
+    Qt6::Core
+)
 
-#set_target_properties(asyncfuture PROPERTIES PUBLIC_HEADER "Monad.h" "Result.h")
+target_sources(monad PRIVATE
+    Monad/Monad.h
+    Monad/Result.h
+)
+
+if(MONAD_TESTING)
+    add_subdirectory(tests)
+endif()
+
+# set_target_properties(asyncfuture PROPERTIES PUBLIC_HEADER "Monad.h" "Result.h")
 
 # install(TARGETS monad
 #     LIBRARY DESTINATION lib
