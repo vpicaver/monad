@@ -1,18 +1,25 @@
-#ifndef RESULT_H
-#define RESULT_H
+#pragma once
 
 //Qt includes
 #include <QString>
 #include <QMetaType>
 #include <QFuture>
 
-
 //Std includes
 #include <utility>
 
 namespace Monad {
 
+//Forward declare mbind
+template<typename T, typename Func>
+auto mbind(T value, Func f);
+
 class ResultBase {
+    Q_GADGET
+    Q_PROPERTY(int errorCode READ errorCode CONSTANT FINAL)
+    Q_PROPERTY(QString errorMessage READ errorMessage CONSTANT FINAL)
+    Q_PROPERTY(bool hasError READ hasError CONSTANT FINAL)
+
 public:
     enum ErrorCode {
         NoError,
@@ -44,6 +51,20 @@ public:
         return !hasError();
     }
 
+    template<typename F>
+    auto then(F f) const {
+        return mbind(*this, f);
+    }
+
+    ResultBase replaceIfErrorWith(int error) const {
+        if(hasError()) {
+            return ResultBase(mErrorMessage, error);
+        } else {
+            return *this;
+        }
+    }
+
+
 private:
     QString mErrorMessage;
     int mErrorCode = NoError;
@@ -70,6 +91,19 @@ public:
 
     T value() const {
         return mValue;
+    }
+
+    template<typename F>
+    auto then(F f) const {
+        return mbind(*this, f);
+    }
+
+    Result<T> replaceIfErrorWith(int error) const {
+        if(hasError()) {
+            return Result<T>(errorMessage(), error);
+        } else {
+            return *this;
+        }
     }
 
 protected:
@@ -100,6 +134,3 @@ Q_DECLARE_METATYPE(QFuture<Monad::ResultBase>)
 Q_DECLARE_METATYPE(QFuture<Monad::ResultString>)
 Q_DECLARE_METATYPE(Monad::ResultBase)
 Q_DECLARE_METATYPE(Monad::ResultString)
-
-
-#endif
